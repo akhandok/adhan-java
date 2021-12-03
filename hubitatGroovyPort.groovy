@@ -18,11 +18,15 @@ preferences {
 def installed() { initialize() }
 def updated() { initialize() }
 def initialize() {
-    log.debug PrayerTimes_seasonAdjustedMorningTwilight(-39.768402, 2, 2021, new Date())
+    def coordinates = Coordinates_ctor(39.768402, -86.158066)
+    def dateComponents = DateComponents_from(new Date())
+    def parameters = CalculationMethod_NORTH_AMERICA().getParameters()
+    
+    log.debug PrayerTimes_ctor(coordinates, dateComponents, parameters)
 }
 
 // ==========================================================================================================================================
-// Hubitat Groovy port of https://github.com/batoulapps/adhan-java/tree/eefc4ed1b910ec144dff247f45b2b23a16c7d0c2
+// Hubitat Groovy port of https://github.com/akhandok/adhan-java/tree/eefc4ed1b910ec144dff247f45b2b23a16c7d0c2
 // ==========================================================================================================================================
 
 import java.util.Calendar;
@@ -35,11 +39,9 @@ import java.util.TimeZone;
 // ==========================================================================================================================================
 
 def Enum_ctor(String enumName) {
-    def instance = [
+    return [
         name: enumName
     ];
-    instance.equals = { name -> return name == instance.name };
-    return instance;
 }
 
 // ==========================================================================================================================================
@@ -180,8 +182,8 @@ def CalculationParameters_ctor() {
         ishaInterval: 0,
         madhab: Madhab_SHAFI(),
         highLatitudeRule: HighLatitudeRule_MIDDLE_OF_THE_NIGHT(),
-        adjustments: [:],
-        methodAdjustments: [:]
+        adjustments: PrayerAdjustments_ctor(),
+        methodAdjustments: PrayerAdjustments_ctor()
     ]
     instance.withMethodAdjustments = { Map adjustments ->
         instance.methodAdjustments = adjustments;
@@ -316,7 +318,7 @@ def TimeComponents_ctor(int hours, int minutes, int seconds) {
         minutes: minutes,
         seconds: seconds
     ];
-    instance.dateComponents = { Date date ->
+    instance.dateComponents = { Map date ->
         def calendar = GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(Calendar.YEAR, date.year);
         calendar.set(Calendar.MONTH, date.month - 1);
@@ -797,7 +799,7 @@ def PrayerTimes_ctor(Map coordinates, Map date, Map parameters) {
 
     def timeComponents = TimeComponents_fromDouble(solarTime.transit);
     Date transit = timeComponents == null ? null : timeComponents.dateComponents(date);
-
+    
     timeComponents = TimeComponents_fromDouble(solarTime.sunrise);
     Date sunriseComponents = timeComponents == null ? null : timeComponents.dateComponents(date);
 
@@ -846,7 +848,7 @@ def PrayerTimes_ctor(Map coordinates, Map date, Map parameters) {
         safeFajr = CalendarUtil_add(
             sunriseComponents, -1 * (int) nightFraction, Calendar.SECOND);
       }
-
+        
       if (tempFajr == null || tempFajr.before(safeFajr)) {
         tempFajr = safeFajr;
       }
